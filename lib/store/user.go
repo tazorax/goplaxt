@@ -46,7 +46,7 @@ func NewUser(username, accessToken, refreshToken string, store store) User {
 }
 
 // UpdateUser updates an existing user object
-func (user User) UpdateUser(accessToken, refreshToken string) {
+func (user *User) UpdateUser(accessToken, refreshToken string) {
 	user.AccessToken = accessToken
 	user.RefreshToken = refreshToken
 	user.Updated = time.Now()
@@ -54,6 +54,6 @@ func (user User) UpdateUser(accessToken, refreshToken string) {
 	user.save()
 }
 
-func (user User) save() {
-	user.store.WriteUser(user)
+func (user *User) save() {
+	user.store.WriteUser(*user)
 }
