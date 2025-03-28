@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"log" // Add log package
 	"strings"
 	"time"
 
@@ -61,6 +62,7 @@ func (s PostgresqlStore) Ping(ctx context.Context) error {
 
 // WriteUser will write a user object to postgres
 func (s PostgresqlStore) WriteUser(user User) {
+	log.Printf("PostgresqlStore: Writing user: %+v", user) // Add logging
 	_, err := s.db.Exec(
 		`
 			INSERT INTO users
@@ -76,6 +78,7 @@ func (s PostgresqlStore) WriteUser(user User) {
 		user.Updated,
 	)
 	if err != nil {
+		log.Printf("PostgresqlStore: Error writing user: %v", err) // Add error logging
 		panic(err)
 	}
 }

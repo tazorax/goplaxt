@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ func (s DiskStore) Ping(ctx context.Context) error {
 
 // WriteUser will write a user object to disk
 func (s DiskStore) WriteUser(user User) {
+	log.Printf("DiskStore: Writing user: %+v", user) // Add logging
 	s.writeField(user.ID, "username", user.Username)
 	s.writeField(user.ID, "access", user.AccessToken)
 	s.writeField(user.ID, "refresh", user.RefreshToken)

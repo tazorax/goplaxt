@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -44,12 +45,17 @@ func (s RedisStore) Ping(ctx context.Context) error {
 
 // WriteUser will write a user object to redis
 func (s RedisStore) WriteUser(user User) {
+	log.Printf("RedisStore: Writing user: %+v", user) // Add logging
 	data := make(map[string]interface{})
 	data["username"] = user.Username
 	data["access"] = user.AccessToken
 	data["refresh"] = user.RefreshToken
 	data["updated"] = user.Updated.Format("01-02-2006")
-	s.client.HMSet("goplaxt:user:"+user.ID, data)
+	err := s.client.HMSet("goplaxt:user:"+user.ID, data).Err()
+	if err != nil {
+		log.Printf("RedisStore: Error writing user: %v", err) // Add error logging
+		panic(err)
+	}
 }
 
 // GetUser will load a user from redis
