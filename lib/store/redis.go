@@ -70,7 +70,7 @@ func (s RedisStore) GetUser(id string) *User {
 		AccessToken:  data["access"],
 		RefreshToken: data["refresh"],
 		Updated:      updated,
-		store:        s,
+		Store:        s,
 	}
 
 	return &user

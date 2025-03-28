@@ -108,7 +108,7 @@ func (s PostgresqlStore) GetUser(id string) *User {
 		AccessToken:  access,
 		RefreshToken: refresh,
 		Updated:      updated,
-		store:        s,
+		Store:        s, // Updated field name
 	}
 
 	return &user
