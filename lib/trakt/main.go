@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/xanderstrike/goplaxt/lib/config"
-	"github.com/xanderstrike/goplaxt/lib/store"
+	"github.com/viscerous/goplaxt/lib/config"
+	"github.com/viscerous/goplaxt/lib/store"
 	"github.com/xanderstrike/plexhooks"
 )
 

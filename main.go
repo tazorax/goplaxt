@@ -17,9 +17,9 @@ import (
 	"github.com/etherlabsio/healthcheck"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/xanderstrike/goplaxt/lib/config"
-	"github.com/xanderstrike/goplaxt/lib/store"
-	"github.com/xanderstrike/goplaxt/lib/trakt"
+	"github.com/viscerous/goplaxt/lib/config"
+	"github.com/viscerous/goplaxt/lib/store"
+	"github.com/viscerous/goplaxt/lib/trakt"
 	"github.com/xanderstrike/plexhooks"
 )
 
@@ -86,7 +86,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenAge := time.Since(user.Updated).Hours()
-	if tokenAge > 1440 { // tokens expire after 3 months, so we refresh after 2
+	if tokenAge > 23 { // tokens expire after 24 hours, so we refresh after 23
 		log.Println("User access token outdated, refreshing...")
 		result, success := trakt.AuthRequest(SelfRoot(r), user.Username, "", user.RefreshToken, "refresh_token")
 		if success {

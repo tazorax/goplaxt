@@ -1,4 +1,4 @@
-module github.com/xanderstrike/goplaxt
+module github.com/viscerous/goplaxt
 
 go 1.12
 
