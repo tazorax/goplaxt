@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 )
@@ -55,5 +56,9 @@ func (user *User) UpdateUser(accessToken, refreshToken string) {
 }
 
 func (user *User) save() {
+	if user.store == nil {
+		log.Panic("store is nil in User.save()")
+	}
+	log.Printf("Saving user: %+v", user)
 	user.store.WriteUser(*user)
 }

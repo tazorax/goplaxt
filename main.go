@@ -85,6 +85,10 @@ func api(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.store == nil {
+		log.Panic("store is nil in User retrieved from storage")
+	}
+
 	tokenAge := time.Since(user.Updated).Hours()
 	if tokenAge > 23 { // tokens expire after 24 hours, so we refresh after 23
 		log.Println("User access token outdated, refreshing...")
