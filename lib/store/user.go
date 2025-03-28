@@ -18,7 +18,7 @@ type User struct {
 	AccessToken  string
 	RefreshToken string
 	Updated      time.Time
-	store        store
+	Store        store // Renamed from `store` to `Store`
 }
 
 func uuid() string {
@@ -40,7 +40,7 @@ func NewUser(username, accessToken, refreshToken string, store store) User {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		Updated:      time.Now(),
-		store:        store,
+		Store:        store, // Updated field name
 	}
 	user.save()
 	return user
@@ -56,9 +56,9 @@ func (user *User) UpdateUser(accessToken, refreshToken string) {
 }
 
 func (user *User) save() {
-	if user.store == nil {
-		log.Panic("store is nil in User.save()")
+	if user.Store == nil { // Updated field name
+		log.Panic("Store is nil in User.save()")
 	}
 	log.Printf("Saving user: %+v", user)
-	user.store.WriteUser(*user)
+	user.Store.WriteUser(*user) // Updated field name
 }

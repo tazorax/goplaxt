@@ -85,8 +85,8 @@ func api(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.store == nil {
-		log.Panic("store is nil in User retrieved from storage")
+	if user.Store == nil { // Updated field name
+		log.Panic("Store is nil in User retrieved from storage")
 	}
 
 	tokenAge := time.Since(user.Updated).Hours()

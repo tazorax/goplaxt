@@ -56,6 +56,7 @@ func (s DiskStore) GetUser(id string) *User {
 		AccessToken:  ac,
 		RefreshToken: re,
 		Updated:      updated,
+		Store:        s, // Updated field name
 	}
 
 	return &user
@@ -80,7 +81,7 @@ func (s DiskStore) readField(id, field string) (string, error) {
 	return s.read(fmt.Sprintf("%s.%s", id, field))
 }
 
-func (s DiskStore) eraseField(id, field string) (error) {
+func (s DiskStore) eraseField(id, field string) error {
 	d := diskv.New(diskv.Options{
 		BasePath:     "keystore",
 		Transform:    flatTransform,
