@@ -30,7 +30,7 @@ func NewPostgresqlClient(connStr string) *sql.DB {
 			username varchar(255) NOT NULL,
 			access varchar(255) NOT NULL,
 			refresh varchar(255) NOT NULL,
-			updated timestamp with time zone NOT NULL,
+			expires_at timestamp with time zone NOT NULL,
 			PRIMARY KEY(id)
 		)
 	`)
@@ -66,16 +66,16 @@ func (s PostgresqlStore) WriteUser(user User) {
 	_, err := s.db.Exec(
 		`
 			INSERT INTO users
-				(id, username, access, refresh, updated)
+				(id, username, access, refresh, expires_at)
 				VALUES($1, $2, $3, $4, $5)
 			ON CONFLICT(id)
-			DO UPDATE set username=EXCLUDED.username, access=EXCLUDED.access, refresh=EXCLUDED.refresh, updated=EXCLUDED.updated
+			DO UPDATE set username=EXCLUDED.username, access=EXCLUDED.access, refresh=EXCLUDED.refresh, expires_at=EXCLUDED.expires_at
 		`,
 		user.ID,
 		user.Username,
 		user.AccessToken,
 		user.RefreshToken,
-		user.Updated,
+		user.TokenExpiresAt,
 	)
 	if err != nil {
 		log.Printf("PostgresqlStore: Error writing user: %v", err) // Add error logging
@@ -85,39 +85,44 @@ func (s PostgresqlStore) WriteUser(user User) {
 
 // GetUser will load a user from postgres
 func (s PostgresqlStore) GetUser(id string) *User {
-	var username string
-	var access string
-	var refresh string
-	var updated time.Time
+	var username, access, refresh string
+	var tokenExpiresAt time.Time
 
 	err := s.db.QueryRow(
-		"SELECT username, access, refresh, updated FROM users WHERE id=$1",
+		"SELECT username, access, refresh, expires_at FROM users WHERE id=$1",
 		id,
 	).Scan(
 		&username,
 		&access,
 		&refresh,
-		&updated,
+		&tokenExpiresAt,
 	)
 	switch {
 	case err == sql.ErrNoRows:
-		panic(fmt.Errorf("no user with id %s", id))
+		log.Printf("PostgresqlStore: No user with id %s", id)
+		return nil
 	case err != nil:
+		log.Printf("PostgresqlStore: Query error: %v", err)
 		panic(fmt.Errorf("query error: %v", err))
 	}
+
 	user := User{
-		ID:           id,
-		Username:     strings.ToLower(username),
-		AccessToken:  access,
-		RefreshToken: refresh,
-		Updated:      updated,
-		Store:        s, // Updated field name
+		ID:             id,
+		Username:       strings.ToLower(username),
+		AccessToken:    access,
+		RefreshToken:   refresh,
+		TokenExpiresAt: tokenExpiresAt,
+		Store:          s, // Updated field name
 	}
 
 	return &user
 }
 
-// TODO: Not Implemented
 func (s PostgresqlStore) DeleteUser(id string) bool {
+	_, err := s.db.Exec("DELETE FROM users WHERE id=$1", id)
+	if err != nil {
+		log.Printf("PostgresqlStore: Error deleting user %s: %v", id, err)
+		return false
+	}
 	return true
 }

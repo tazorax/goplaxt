@@ -30,16 +30,12 @@ func (s DiskStore) WriteUser(user User) {
 	s.writeField(user.ID, "username", user.Username)
 	s.writeField(user.ID, "access", user.AccessToken)
 	s.writeField(user.ID, "refresh", user.RefreshToken)
-	s.writeField(user.ID, "updated", user.Updated.Format("01-02-2006"))
+	s.writeField(user.ID, "expires_at", user.TokenExpiresAt.Format(time.RFC3339)) // Save TokenExpiresAt
 }
 
 // GetUser will load a user from disk
 func (s DiskStore) GetUser(id string) *User {
 	un, err := s.readField(id, "username")
-	if err != nil {
-		return nil
-	}
-	ud, err := s.readField(id, "updated")
 	if err != nil {
 		return nil
 	}
@@ -51,14 +47,19 @@ func (s DiskStore) GetUser(id string) *User {
 	if err != nil {
 		return nil
 	}
-	updated, _ := time.Parse("01-02-2006", ud)
+	expiresAtStr, err := s.readField(id, "expires_at")
+	if err != nil {
+		return nil
+	}
+	tokenExpiresAt, _ := time.Parse(time.RFC3339, expiresAtStr)
+
 	user := User{
-		ID:           id,
-		Username:     strings.ToLower(un),
-		AccessToken:  ac,
-		RefreshToken: re,
-		Updated:      updated,
-		Store:        s, // Updated field name
+		ID:             id,
+		Username:       strings.ToLower(un),
+		AccessToken:    ac,
+		RefreshToken:   re,
+		TokenExpiresAt: tokenExpiresAt,
+		Store:          s, // Updated field name
 	}
 
 	return &user
@@ -66,9 +67,9 @@ func (s DiskStore) GetUser(id string) *User {
 
 func (s DiskStore) DeleteUser(id string) bool {
 	s.eraseField(id, "username")
-	s.eraseField(id, "updated")
 	s.eraseField(id, "access")
 	s.eraseField(id, "refresh")
+	s.eraseField(id, "expires_at") // Remove TokenExpiresAt field
 	return true
 }
 

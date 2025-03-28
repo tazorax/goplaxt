@@ -13,12 +13,12 @@ type store interface {
 
 // User object
 type User struct {
-	ID           string
-	Username     string
-	AccessToken  string
-	RefreshToken string
-	Updated      time.Time
-	Store        store // Renamed from `store` to `Store`
+	ID             string
+	Username       string
+	AccessToken    string
+	RefreshToken   string
+	TokenExpiresAt time.Time
+	Store          store
 }
 
 func uuid() string {
@@ -32,33 +32,34 @@ func uuid() string {
 }
 
 // NewUser creates a new user object
-func NewUser(username, accessToken, refreshToken string, store store) User {
+func NewUser(username, accessToken, refreshToken string, expiresIn int64, createdAt int64, store store) User {
 	id := uuid()
+	tokenExpiresAt := time.Unix(createdAt, 0).Add(time.Duration(expiresIn) * time.Second)
 	user := User{
-		ID:           id,
-		Username:     username,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		Updated:      time.Now(),
-		Store:        store, // Updated field name
+		ID:             id,
+		Username:       username,
+		AccessToken:    accessToken,
+		RefreshToken:   refreshToken,
+		TokenExpiresAt: tokenExpiresAt,
+		Store:          store,
 	}
 	user.save()
 	return user
 }
 
 // UpdateUser updates an existing user object
-func (user *User) UpdateUser(accessToken, refreshToken string) {
+func (user *User) UpdateUser(accessToken, refreshToken string, expiresIn int64, createdAt int64) {
 	user.AccessToken = accessToken
 	user.RefreshToken = refreshToken
-	user.Updated = time.Now()
+	user.TokenExpiresAt = time.Unix(createdAt, 0).Add(time.Duration(expiresIn) * time.Second)
 
 	user.save()
 }
 
 func (user *User) save() {
-	if user.Store == nil { // Updated field name
+	if user.Store == nil {
 		log.Panic("Store is nil in User.save()")
 	}
-	log.Printf("Saving user: %+v", user)
-	user.Store.WriteUser(*user) // Updated field name
+	log.Printf("Saving user: %+v", *user)
+	user.Store.WriteUser(*user)
 }

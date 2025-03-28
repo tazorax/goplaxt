@@ -17,27 +17,27 @@ func TestPostgresqlLoadingUser(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectQuery(
-		"SELECT username, access, refresh, updated FROM users WHERE id=.*",
+		"SELECT username, access, refresh, expires_at FROM users WHERE id=.*",
 	).WithArgs(
 		"id123",
 	).WillReturnRows(
-		sqlmock.NewRows([]string{"username", "access", "refresh", "updated"}).
+		sqlmock.NewRows([]string{"username", "access", "refresh", "expires_at"}).
 			AddRow(
 				"halkeye",
 				"access123",
 				"refresh123",
-				time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
+				time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
 			),
 	)
 
 	store := NewPostgresqlStore(db)
 
 	expected, _ := json.Marshal(&User{
-		ID:           "id123",
-		Username:     "halkeye",
-		AccessToken:  "access123",
-		RefreshToken: "refresh123",
-		Updated:      time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
+		ID:             "id123",
+		Username:       "halkeye",
+		AccessToken:    "access123",
+		RefreshToken:   "refresh123",
+		TokenExpiresAt: time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
 	})
 	actual, _ := json.Marshal(store.GetUser("id123"))
 
@@ -53,23 +53,23 @@ func TestPostgresqlSavingUser(t *testing.T) {
 
 	mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery("SELECT").WithArgs("id123").WillReturnRows(
-		sqlmock.NewRows([]string{"username", "access", "refresh", "updated"}).
+		sqlmock.NewRows([]string{"username", "access", "refresh", "expires_at"}).
 			AddRow(
 				"halkeye",
 				"access123",
 				"refresh123",
-				time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
+				time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
 			),
 	)
 
 	store := NewPostgresqlStore(db)
 	originalUser := &User{
-		ID:           "id123",
-		Username:     "halkeye",
-		AccessToken:  "access123",
-		RefreshToken: "refresh123",
-		Updated:      time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
-		store:        store,
+		ID:             "id123",
+		Username:       "halkeye",
+		AccessToken:    "access123",
+		RefreshToken:   "refresh123",
+		TokenExpiresAt: time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
+		Store:          store,
 	}
 
 	originalUser.save()

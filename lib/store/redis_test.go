@@ -22,14 +22,14 @@ func TestLoadingUser(t *testing.T) {
 	s.HSet("goplaxt:user:id123", "username", "halkeye")
 	s.HSet("goplaxt:user:id123", "access", "access123")
 	s.HSet("goplaxt:user:id123", "refresh", "refresh123")
-	s.HSet("goplaxt:user:id123", "updated", "02-25-2019")
+	s.HSet("goplaxt:user:id123", "expires_at", "2025-03-28T22:30:55Z")
 
 	expected, err := json.Marshal(&User{
-		ID:           "id123",
-		Username:     "halkeye",
-		AccessToken:  "access123",
-		RefreshToken: "refresh123",
-		Updated:      time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
+		ID:             "id123",
+		Username:       "halkeye",
+		AccessToken:    "access123",
+		RefreshToken:   "refresh123",
+		TokenExpiresAt: time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
 	})
 	actual, err := json.Marshal(store.GetUser("id123"))
 
@@ -45,12 +45,12 @@ func TestSavingUser(t *testing.T) {
 
 	store := NewRedisStore(NewRedisClient(s.Addr(), ""))
 	originalUser := &User{
-		ID:           "id123",
-		Username:     "halkeye",
-		AccessToken:  "access123",
-		RefreshToken: "refresh123",
-		Updated:      time.Date(2019, 02, 25, 0, 0, 0, 0, time.UTC),
-		store:        store,
+		ID:             "id123",
+		Username:       "halkeye",
+		AccessToken:    "access123",
+		RefreshToken:   "refresh123",
+		TokenExpiresAt: time.Date(2025, 03, 28, 22, 30, 55, 0, time.UTC),
+		Store:          store,
 	}
 
 	originalUser.save()
@@ -58,7 +58,7 @@ func TestSavingUser(t *testing.T) {
 	assert.Equal(t, s.HGet("goplaxt:user:id123", "username"), "halkeye")
 	assert.Equal(t, s.HGet("goplaxt:user:id123", "access"), "access123")
 	assert.Equal(t, s.HGet("goplaxt:user:id123", "refresh"), "refresh123")
-	assert.Equal(t, s.HGet("goplaxt:user:id123", "updated"), "02-25-2019")
+	assert.Equal(t, s.HGet("goplaxt:user:id123", "expires_at"), "2025-03-28T22:30:55Z")
 
 	expected, err := json.Marshal(originalUser)
 	actual, err := json.Marshal(store.GetUser("id123"))

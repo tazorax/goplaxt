@@ -55,7 +55,14 @@ func authorize(w http.ResponseWriter, r *http.Request) {
 	code := args["code"][0]
 	result, _ := trakt.AuthRequest(SelfRoot(r), username, code, "", "authorization_code")
 
-	user := store.NewUser(username, result["access_token"].(string), result["refresh_token"].(string), storage)
+	user := store.NewUser(
+		username,
+		result["access_token"].(string),
+		result["refresh_token"].(string),
+		int64(result["expires_in"].(float64)),
+		int64(result["created_at"].(float64)),
+		storage,
+	)
 
 	url := fmt.Sprintf("%s/api?id=%s", SelfRoot(r), user.ID)
 
@@ -89,12 +96,16 @@ func api(w http.ResponseWriter, r *http.Request) {
 		log.Panic("Store is nil in User retrieved from storage")
 	}
 
-	tokenAge := time.Since(user.Updated).Hours()
-	if tokenAge > 23 { // tokens expire after 24 hours, so we refresh after 23
-		log.Println("User access token outdated, refreshing...")
+	if time.Now().After(user.TokenExpiresAt) { // Check if token is expired
+		log.Println("User access token expired, refreshing...")
 		result, success := trakt.AuthRequest(SelfRoot(r), user.Username, "", user.RefreshToken, "refresh_token")
 		if success {
-			user.UpdateUser(result["access_token"].(string), result["refresh_token"].(string))
+			user.UpdateUser(
+				result["access_token"].(string),
+				result["refresh_token"].(string),
+				int64(result["expires_in"].(float64)),
+				int64(result["created_at"].(float64)),
+			)
 			log.Println("Refreshed, continuing")
 		} else {
 			log.Println("Refresh failed, skipping and deleting user")
