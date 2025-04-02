@@ -98,22 +98,21 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 	if time.Now().After(user.TokenExpiresAt) { // Check if token is expired
 		log.Println("User access token expired, refreshing...")
-		result, success := trakt.AuthRequest(SelfRoot(r), user.Username, "", user.RefreshToken, "refresh_token")
-		if success {
-			user.UpdateUser(
-				result["access_token"].(string),
-				result["refresh_token"].(string),
-				int64(result["expires_in"].(float64)),
-				int64(result["created_at"].(float64)),
-			)
-			log.Println("Refreshed, continuing")
-		} else {
-			log.Println("Refresh failed, skipping and deleting user")
+		result, err := trakt.AuthRequest(SelfRoot(r), user.Username, "", user.RefreshToken, "refresh_token")
+		if err != nil {
+			log.Println("Refresh failed:", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode("fail")
 			storage.DeleteUser(user.ID)
 			return
 		}
+		user.UpdateUser(
+			result["access_token"].(string),
+			result["refresh_token"].(string),
+			int64(result["expires_in"].(float64)),
+			int64(result["created_at"].(float64)),
+		)
+		log.Println("Refreshed, continuing")
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
