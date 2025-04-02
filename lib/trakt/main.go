@@ -16,7 +16,7 @@ import (
 )
 
 // AuthRequest authorize the connection with Trakt
-func AuthRequest(root, username, code, refreshToken, grantType string) (map[string]interface{}, bool) {
+func AuthRequest(root, username, code, refreshToken, grantType string) (map[string]interface{}, error) {
 	values := map[string]string{
 		"code":          code,
 		"refresh_token": refreshToken,
@@ -25,22 +25,27 @@ func AuthRequest(root, username, code, refreshToken, grantType string) (map[stri
 		"redirect_uri":  fmt.Sprintf("%s/authorize?username=%s", root, url.PathEscape(username)),
 		"grant_type":    grantType,
 	}
-	jsonValue, _ := json.Marshal(values)
-
-	resp, err := http.Post("https://api.trakt.tv/oauth/token", "application/json", bytes.NewBuffer(jsonValue))
-	handleErr(err)
-
-	var result map[string]interface{}
-
-	if resp.Status != "200 OK" {
-		log.Println(fmt.Sprintf("Got a %s error while refreshing :(", resp.Status))
-		return result, false
+	jsonValue, err := json.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	handleErr(err)
+	resp, err := http.Post("https://api.trakt.tv/oauth/token", "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
 
-	return result, true
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result, nil
 }
 
 // Handle determine if an item is a show or a movie
