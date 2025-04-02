@@ -91,12 +91,12 @@ func findEpisode(pr plexhooks.PlexResponse) Episode {
 	var traktService = "tvdb"
 	var showID []string
 
-	re := regexp.MustCompile("tvdb(?:://|[2-5]?-)(\\d*)/(\\d*)/(\\d*)")
+	re := regexp.MustCompile(`tvdb(?:://|[2-5]?-)(\d*)/(\d*)/(\d*)`)
 	showID = re.FindStringSubmatch(pr.Metadata.Guid)
 
 	// Retry with TheMovieDB
 	if showID == nil {
-		re := regexp.MustCompile("themoviedb://(\\d*)/(\\d*)/(\\d*)")
+		re := regexp.MustCompile(`themoviedb://(\d*)/(\d*)/(\d*)`)
 		showID = re.FindStringSubmatch(pr.Metadata.Guid)
 		traktService = "tmdb"
 	}
@@ -120,14 +120,14 @@ func findEpisode(pr plexhooks.PlexResponse) Episode {
 		err := json.Unmarshal(respBody, &showInfo)
 		handleErr(err)
 
-		log.Print(fmt.Sprintf("Tracking %s - S%02dE%02d using %s", showInfo[0].Show.Title, showInfo[0].Episode.Season, showInfo[0].Episode.Number, traktService))
+		log.Printf("Tracking %s - S%02dE%02d using %s", showInfo[0].Show.Title, showInfo[0].Episode.Season, showInfo[0].Episode.Number, traktService)
 
 		return showInfo[0].Episode
 	}
 
 	url := fmt.Sprintf("https://api.trakt.tv/search/%s/%s?type=show", traktService, showID[1])
 
-	log.Print(fmt.Sprintf("Finding show for %s %s %s using %s", showID[1], showID[2], showID[3], traktService))
+	log.Printf("Finding show for %s %s %s using %s", showID[1], showID[2], showID[3], traktService)
 
 	respBody := makeRequest(url)
 
@@ -156,7 +156,7 @@ func findEpisode(pr plexhooks.PlexResponse) Episode {
 }
 
 func findMovie(pr plexhooks.PlexResponse) Movie {
-	log.Print(fmt.Sprintf("Finding movie for %s (%d)", pr.Metadata.Title, pr.Metadata.Year))
+	log.Printf("Finding movie for %s (%d)", pr.Metadata.Title, pr.Metadata.Year)
 	url := fmt.Sprintf("https://api.trakt.tv/search/movie?query=%s", url.PathEscape(pr.Metadata.Title))
 
 	respBody := makeRequest(url)
@@ -206,7 +206,10 @@ func scrobbleRequest(action string, body []byte, accessToken string) []byte {
 	req.Header.Add("trakt-api-version", "2")
 	req.Header.Add("trakt-api-key", config.TraktClientId)
 
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		handleErr(err)
+	}
 	defer resp.Body.Close()
 
 	respBody, _ := ioutil.ReadAll(resp.Body)

@@ -51,7 +51,7 @@ func SelfRoot(r *http.Request) string {
 func authorize(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query()
 	username := strings.ToLower(args["username"][0])
-	log.Print(fmt.Sprintf("Handling auth request for %s", username))
+	log.Printf("Handling auth request for %s", username)
 	code := args["code"][0]
 	result, _ := trakt.AuthRequest(SelfRoot(r), username, code, "", "authorization_code")
 
@@ -66,7 +66,7 @@ func authorize(w http.ResponseWriter, r *http.Request) {
 
 	url := fmt.Sprintf("%s/api?id=%s", SelfRoot(r), user.ID)
 
-	log.Print(fmt.Sprintf("Authorized as %s", user.ID))
+	log.Printf("Authorized as %s", user.ID)
 
 	tmpl := template.Must(template.ParseFiles("static/index.html"))
 	data := AuthorizePage{
@@ -81,7 +81,7 @@ func authorize(w http.ResponseWriter, r *http.Request) {
 func api(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query()
 	id := args["id"][0]
-	log.Print(fmt.Sprintf("Webhook call for %s", id))
+	log.Printf("Webhook call for %s", id)
 
 	user := storage.GetUser(id)
 
@@ -133,14 +133,14 @@ func api(w http.ResponseWriter, r *http.Request) {
 		// FIXME - make everything take the pointer
 		trakt.Handle(re, *user)
 	} else {
-		log.Println(fmt.Sprintf("Plex username %s does not equal %s, skipping", strings.ToLower(re.Account.Title), user.Username))
+		log.Printf("Plex username %s does not equal %s, skipping", strings.ToLower(re.Account.Title), user.Username)
 	}
 
 	json.NewEncoder(w).Encode("success")
 }
 
 func allowedHostsHandler(allowedHostnames string) func(http.Handler) http.Handler {
-	allowedHosts := strings.Split(regexp.MustCompile("https://|http://|\\s+").ReplaceAllString(strings.ToLower(allowedHostnames), ""), ",")
+	allowedHosts := strings.Split(regexp.MustCompile(`https://|http://|\s+`).ReplaceAllString(strings.ToLower(allowedHostnames), ""), ",")
 	log.Println("Allowed Hostnames:", allowedHosts)
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
