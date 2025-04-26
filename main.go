@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/etherlabsio/healthcheck"
@@ -23,7 +24,10 @@ import (
 	"github.com/xanderstrike/plexhooks"
 )
 
-var storage store.Store
+var (
+	storage   store.Store
+	userLocks sync.Map // map[string]*sync.Mutex
+)
 
 type AuthorizePage struct {
 	SelfRoot   string
@@ -82,6 +86,18 @@ func api(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query()
 	id := args["id"][0]
 	log.Printf("Webhook call for %s", id)
+
+	// Get or create a mutex for the user ID
+	mutex, _ := userLocks.LoadOrStore(id, &sync.Mutex{})
+	mutexValue, ok := mutex.(*sync.Mutex)
+	if !ok {
+		log.Printf("Could not assert type sync.Mutex")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode("internal server error")
+		return
+	}
+	mutexValue.Lock()
+	defer mutexValue.Unlock()
 
 	user := storage.GetUser(id)
 
