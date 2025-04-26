@@ -29,7 +29,10 @@ func TestSelfRoot(t *testing.T) {
 	assert.Equal(t, "http://foo.bar", SelfRoot(r))
 
 	// Test Manual forwarded proto
-	r, _ = http.NewRequest("GET", "/validate", nil)
+	r, err = http.NewRequest("GET", "/validate", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	r.Host = "foo.bar"
 	r.Header.Set("X-Forwarded-Proto", "https")
 	assert.Equal(t, "https://foo.bar", SelfRoot(r))
