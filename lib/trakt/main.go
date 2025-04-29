@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/viscerous/goplaxt/lib/config"
+	"github.com/viscerous/goplaxt/lib/store"
+	"github.com/xanderstrike/plexhooks"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
-
-	"github.com/viscerous/goplaxt/lib/config"
-	"github.com/viscerous/goplaxt/lib/store"
-	"github.com/xanderstrike/plexhooks"
+	"strings"
 )
 
 // AuthRequest authorize the connection with Trakt
@@ -88,65 +87,72 @@ func HandleMovie(pr plexhooks.PlexResponse, accessToken string) {
 }
 
 func findEpisode(pr plexhooks.PlexResponse) Episode {
-	var traktService = "tvdb"
-	var showID []string
+	guids := pr.Metadata.ExternalGuid
 
-	re := regexp.MustCompile(`tvdb(?:://|[2-5]?-)(\d*)/(\d*)/(\d*)`)
-	showID = re.FindStringSubmatch(pr.Metadata.Guid)
+	// Try to find a match with Guid
+	for _, guid := range guids {
+		index := strings.Index(guid.Id, "://")
 
-	// Retry with TheMovieDB
-	if showID == nil {
-		re := regexp.MustCompile(`themoviedb://(\d*)/(\d*)/(\d*)`)
-		showID = re.FindStringSubmatch(pr.Metadata.Guid)
-		traktService = "tmdb"
-	}
+		if index == -1 {
+			continue
+		}
 
-	// Retry with the new Plex TV agent
-	if showID == nil {
-		var episodeID string
+		traktService := guid.Id[:index]
+		episodeID := guid.Id[index+3:]
 
-		log.Println("Finding episode with new Plex TV agent")
+		log.Printf("Finding episode with episode ID %s using %s", episodeID, traktService)
 
-		traktService = pr.Metadata.ExternalGuid[0].Id[:4]
-		episodeID = pr.Metadata.ExternalGuid[0].Id[7:]
+		apiUrl := fmt.Sprintf("https://api.trakt.tv/search/%s/%s?type=episode", traktService, episodeID)
 
-		// The new Plex TV agent use episode ID instead of show ID,
-		// so we need to do things a bit differently
-		URL := fmt.Sprintf("https://api.trakt.tv/search/%s/%s?type=episode", traktService, episodeID)
-
-		respBody := makeRequest(URL)
+		respBody := makeRequest(apiUrl)
 
 		var showInfo []ShowInfo
 		err := json.Unmarshal(respBody, &showInfo)
 		handleErr(err)
 
-		log.Printf("Tracking %s - S%02dE%02d using %s", showInfo[0].Show.Title, showInfo[0].Episode.Season, showInfo[0].Episode.Number, traktService)
+		if len(showInfo) > 0 {
+			episode := showInfo[0].Episode
+			log.Printf("Tracking %s - S%02dE%02d - %s using %s", showInfo[0].Show.Title, episode.Season, episode.Number, episode.Title, traktService)
 
-		return showInfo[0].Episode
+			return episode
+		}
 	}
 
-	url := fmt.Sprintf("https://api.trakt.tv/search/%s/%s?type=show", traktService, showID[1])
+	// Fallback with title/year
+	log.Printf("Finding episode with title %s (%d)", pr.Metadata.GrandparentTitle, pr.Metadata.Year)
+	apiUrl := fmt.Sprintf("https://api.trakt.tv/search/show?query=%s", url.PathEscape(pr.Metadata.GrandparentTitle))
 
-	log.Printf("Finding show for %s %s %s using %s", showID[1], showID[2], showID[3], traktService)
+	respBody := makeRequest(apiUrl)
 
-	respBody := makeRequest(url)
-
-	var showInfo []ShowInfo
-	err := json.Unmarshal(respBody, &showInfo)
+	var results []ShowSearchResult
+	err := json.Unmarshal(respBody, &results)
 	handleErr(err)
 
-	url = fmt.Sprintf("https://api.trakt.tv/shows/%d/seasons?extended=episodes", showInfo[0].Show.Ids.Trakt)
+	var show *Show
 
-	respBody = makeRequest(url)
-	var seasons []Season
-	err = json.Unmarshal(respBody, &seasons)
-	handleErr(err)
+	for _, result := range results {
+		if result.Show.Year == pr.Metadata.Year {
+			show = &result.Show
+			break
+		}
+	}
 
-	for _, season := range seasons {
-		if fmt.Sprintf("%d", season.Number) == showID[2] {
-			for _, episode := range season.Episodes {
-				if fmt.Sprintf("%d", episode.Number) == showID[3] {
-					return episode
+	if show != nil {
+		apiUrl = fmt.Sprintf("https://api.trakt.tv/shows/%d/seasons?extended=episodes", show.Ids.Trakt)
+
+		respBody = makeRequest(apiUrl)
+		var seasons []Season
+		err = json.Unmarshal(respBody, &seasons)
+		handleErr(err)
+
+		for _, season := range seasons {
+			if season.Number == pr.Metadata.ParentIndex {
+				for _, episode := range season.Episodes {
+					if episode.Number == pr.Metadata.Index {
+						log.Printf("Tracking %s - S%02dE%02d - %s using title search", show.Title, season.Number, episode.Number, episode.Title)
+
+						return episode
+					}
 				}
 			}
 		}
@@ -156,21 +162,53 @@ func findEpisode(pr plexhooks.PlexResponse) Episode {
 }
 
 func findMovie(pr plexhooks.PlexResponse) Movie {
-	log.Printf("Finding movie for %s (%d)", pr.Metadata.Title, pr.Metadata.Year)
-	url := fmt.Sprintf("https://api.trakt.tv/search/movie?query=%s", url.PathEscape(pr.Metadata.Title))
+	guids := pr.Metadata.ExternalGuid
 
-	respBody := makeRequest(url)
+	// Try to find a match with Guid
+	for _, guid := range guids {
+		index := strings.Index(guid.Id, "://")
+
+		if index == -1 {
+			continue
+		}
+
+		traktService := guid.Id[:index]
+		movieId := guid.Id[index+3:]
+
+		log.Printf("Finding movie ID %s using %s", movieId, traktService)
+
+		apiUrl := fmt.Sprintf("https://api.trakt.tv/search/%s/%s?type=movie", traktService, movieId)
+
+		respBody := makeRequest(apiUrl)
+
+		var movies []Movie
+		err := json.Unmarshal(respBody, &movies)
+		handleErr(err)
+
+		if len(movies) > 0 {
+			log.Printf("Tracking %s - using %s", movies[0].Title, traktService)
+
+			return movies[0]
+		}
+	}
+
+	// Fallback with title/year
+	log.Printf("Finding movie with title %s (%d)", pr.Metadata.GrandparentTitle, pr.Metadata.Year)
+	apiUrl := fmt.Sprintf("https://api.trakt.tv/search/movie?query=%s", url.PathEscape(pr.Metadata.GrandparentTitle))
+
+	respBody := makeRequest(apiUrl)
 
 	var results []MovieSearchResult
-
 	err := json.Unmarshal(respBody, &results)
 	handleErr(err)
 
 	for _, result := range results {
 		if result.Movie.Year == pr.Metadata.Year {
+			log.Printf("Tracking %s - using title search", result.Movie.Title)
 			return result.Movie
 		}
 	}
+
 	panic("Could not find movie!")
 }
 
@@ -196,9 +234,9 @@ func makeRequest(url string) []byte {
 func scrobbleRequest(action string, body []byte, accessToken string) []byte {
 	client := &http.Client{}
 
-	url := fmt.Sprintf("https://api.trakt.tv/scrobble/%s", action)
+	apiUrl := fmt.Sprintf("https://api.trakt.tv/scrobble/%s", action)
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(body))
 	handleErr(err)
 
 	req.Header.Add("Content-Type", "application/json")

@@ -16,6 +16,11 @@ type Show struct {
 	Ids   Ids
 }
 
+// ShowSearchResult represent a search result for a show
+type ShowSearchResult struct {
+	Show Show
+}
+
 // ShowInfo represent a show
 type ShowInfo struct {
 	Show    Show
