@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.8.0
 	github.com/peterbourgon/diskv v0.0.0-20180312054125-0646ccaebea1
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.10.0
 	github.com/xanderstrike/plexhooks v0.0.0-20220407161444-06c435c2dd83
 )
 
