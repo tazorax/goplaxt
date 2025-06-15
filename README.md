@@ -1,6 +1,6 @@
 # Plaxt
 
-![All](https://github.com/Viscerous/goplaxt/actions/workflows/build.yaml/badge.svg)
+![All](https://github.com/tazorax/goplaxt/actions/workflows/build.yaml/badge.svg)
 
 Plex provides webhook integration for all Plex Pass subscribers, and users of their servers. A webhook is a request that the Plex application sends to third party services when a user takes an action, such as watching a movie or episode.
 
@@ -26,10 +26,7 @@ Once you have that, creating your container is a snap:
       -e TRAKT_SECRET=<trakt_secret> \
       -e ALLOWED_HOSTNAMES=<your public hostname(s) comma or space seperated> \
       -p 8000:8000 \
-      viscerous/goplaxt:latest
-
-If you are using a Raspberry Pi or other ARM based device, simply use
-`viscerous/goplaxt:latest-arm7`.
+      tazorax/goplaxt:latest
 
 Then go ahead and start it with:
 
@@ -46,7 +43,7 @@ services:
     - TRAKT_ID=<trakt_id>
     - TRAKT_SECRET=<trakt_secret>
     - ALLOWED_HOSTNAMES=<your public hostname(s) comma or space seperated>
-    image: viscerous/goplaxt
+    image: tazorax/goplaxt
     ports:
     - 8000:8000
     restart: unless-stopped
@@ -56,7 +53,7 @@ services:
 
 ### Contributing
 
-This repository is a fork from [this public archive](https://github.com/XanderStrike/goplaxt).
+This repository is a fork from [this public archive](https://github.com/XanderStrike/goplaxt), and from [Viscerous one](https://github.com/Viscerous/goplaxt).
 
 ### License
 
