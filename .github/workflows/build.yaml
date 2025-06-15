@@ -41,7 +41,7 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             tazorax/goplaxt:latest
-            tazorax/http-pong:${{ github.ref_name }}
+            tazorax/goplaxt:${{ github.ref_name }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
@@ -49,5 +49,5 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: tazorax/http-pong
+          repository: tazorax/goplaxt
           readme-filepath: ./README.md
