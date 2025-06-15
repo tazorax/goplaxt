@@ -43,4 +43,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/viscerous/goplaxt:latest
